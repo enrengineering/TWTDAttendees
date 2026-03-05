@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TWTD Event Sign-In</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@300;400;600&display=swap');
+  :root { --blue: #0068B5; --bg: #f4f6f9; --card: #ffffff; --text: #0a1628; --muted: #6b7a99; --border: #d0d9e8; --success: #00a651; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'IBM Plex Sans', sans-serif; background: var(--bg); min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px 16px; }
+  body::before { content: ''; position: fixed; top: -200px; right: -200px; width: 600px; height: 600px; background: radial-gradient(circle, rgba(0,104,181,0.08) 0%, transparent 70%); pointer-events: none; }
+  .card { background: var(--card); border-radius: 16px; padding: 40px 36px; width: 100%; max-width: 480px; box-shadow: 0 4px 32px rgba(0,104,181,0.10), 0 1px 4px rgba(0,0,0,0.06); border: 1px solid var(--border); animation: fadeUp 0.5s ease both; }
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+  .logo-row { display: flex; align-items: center; gap: 12px; margin-bottom: 28px; }
+  .badge { background: #0a0a0a; color: #fff; font-family: 'IBM Plex Mono', monospace; font-weight: 600; font-size: 18px; letter-spacing: 0.08em; padding: 6px 14px; border-radius: 6px; }
+  .event-label { font-size: 13px; color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; font-weight: 600; }
+  h1 { font-size: 22px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+  .subtitle { font-size: 14px; color: var(--muted); margin-bottom: 32px; line-height: 1.6; }
+  .field { margin-bottom: 20px; }
+  label { display: block; font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 7px; letter-spacing: 0.03em; }
+  .optional { font-weight: 400; color: #aaa; font-size: 11px; margin-left: 6px; text-transform: uppercase; letter-spacing: 0.05em; }
+  input { width: 100%; padding: 11px 14px; border: 1.5px solid var(--border); border-radius: 8px; font-size: 15px; font-family: 'IBM Plex Sans', sans-serif; color: var(--text); background: #fff; transition: border-color 0.2s, box-shadow 0.2s; outline: none; }
+  input:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(0,104,181,0.12); }
+  .btn { width: 100%; padding: 13px; background: #0a0a0a; color: #fff; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; font-family: 'IBM Plex Sans', sans-serif; cursor: pointer; margin-top: 8px; letter-spacing: 0.03em; transition: background 0.2s; }
+  .btn:hover { background: #333; }
+  .btn:disabled { background: #aaa; cursor: not-allowed; }
+  .success-screen { display: none; text-align: center; padding: 20px 0; animation: fadeUp 0.4s ease both; }
+  .check-icon { width: 64px; height: 64px; background: var(--success); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; font-size: 30px; color: white; }
+  .success-screen h2 { font-size: 22px; color: var(--text); margin-bottom: 8px; }
+  .success-screen p { color: var(--muted); font-size: 14px; line-height: 1.6; }
+  .error-msg { display: none; background: #fff0f0; border: 1px solid #ffcccc; color: #cc0000; border-radius: 8px; padding: 10px 14px; font-size: 13px; margin-top: 12px; }
+  .footer-note { margin-top: 24px; font-size: 11px; color: #bbb; text-align: center; letter-spacing: 0.03em; }
+</style>
+</head>
+<body>
+<div class="card">
+  <div id="form-section">
+    <div class="logo-row">
+      <div class="badge">TWTD</div>
+      <span class="event-label">Event Sign-In</span>
+    </div>
+    <h1>Event Sign-In</h1>
+    <p class="subtitle">Please complete the form to check in.</p>
+    <div class="field">
+      <label>Full Name</label>
+      <input type="text" id="name" placeholder="e.g. Kevin Chang" />
+    </div>
+    <div class="field">
+      <label>Position <span class="optional">Optional</span></label>
+      <input type="text" id="position" placeholder="e.g. Process Engineer" />
+    </div>
+    <div class="field">
+      <label>Department <span class="optional">Optional</span></label>
+      <input type="text" id="dept" placeholder="e.g. Packaging Technology" />
+    </div>
+    <div class="field">
+      <label>Email <span class="optional">Optional</span></label>
+      <input type="email" id="email" placeholder="name@company.com" />
+    </div>
+    <button class="btn" id="submit-btn" onclick="submitForm()">Submit</button>
+    <div class="error-msg" id="error-msg">Something went wrong. Please try again.</div>
+  </div>
+  <div class="success-screen" id="success-section">
+    <div class="check-icon">&#10003;</div>
+    <h2>Sign-in Successful!</h2>
+    <p>Thank you, <strong id="confirmed-name"></strong>.<br>Your sign-in has been recorded.</p>
+  </div>
+  <p class="footer-note">E&amp;R Engineering Corp</p>
+</div>
+<script>
+  const FORMSPREE_ID = 'xykngepn';
+  async function submitForm() {
+    const name     = document.getElementById('name').value.trim();
+    const position = document.getElementById('position').value.trim();
+    const dept     = document.getElementById('dept').value.trim();
+    const email    = document.getElementById('email').value.trim();
+    if (!name) { alert('Full Name is required.'); return; }
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { alert('Please enter a valid email address.'); return; }
+    const btn = document.getElementById('submit-btn');
+    btn.disabled = true;
+    btn.textContent = 'Submitting...';
+    try {
+      const res = await fetch('https://formspree.io/f/' + FORMSPREE_ID, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        body: JSON.stringify({ 'Full Name': name, 'Position': position || '—', 'Department': dept || '—', 'Email': email || '—' })
+      });
+      if (res.ok) {
+        document.getElementById('confirmed-name').textContent = name;
+        document.getElementById('form-section').style.display = 'none';
+        document.getElementById('success-section').style.display = 'block';
+      } else { throw new Error('Server error'); }
+    } catch (e) {
+      document.getElementById('error-msg').style.display = 'block';
+      btn.disabled = false;
+      btn.textContent = 'Submit';
+    }
+  }
+</script>
+</body>
+</html>
